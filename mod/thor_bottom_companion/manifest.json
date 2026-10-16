@@ -1,0 +1,17 @@
+{
+  "id": "thor_bottom_companion",
+  "name": "Thor Bottom Companion",
+  "version": "0.1.0",
+  "api": 2,
+  "entry": "main.lua",
+  "category": "UI",
+  "profile": "content",
+  "games": ["gen1", "gen2", "gen3"],
+  "game_version": ">=0.3.20 <2.0.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": ["kanto_gear"],
+  "conflicts": [],
+  "permissions": ["engine_internals"],
+  "description": "On an AYN Thor running Armada OS, opens the second-screen window of Kanto Gear (Separate Screens) on the bottom panel instead of the top one. Does nothing unless the Kanto Gear Bottom Decky plugin has switched it on."
+}

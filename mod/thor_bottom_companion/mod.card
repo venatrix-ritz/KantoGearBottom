@@ -1,0 +1,19 @@
+-- Sharing metadata for the manager detail pane.
+return {
+  summary = "Opens Kanto Gear's second-screen window on the AYN Thor's bottom screen.",
+  author = "Ven (venatrix-ritz)",
+  contact = "https://github.com/venatrix-ritz",
+  tags = { "ayn-thor", "armada", "second-screen", "kanto-gear" },
+  differences = {
+    changed = {
+      "Where the Separate Screens companion window opens (Thor bottom panel instead of the top one)",
+    },
+    added = {},
+    known = { "Needs the Kanto Gear Bottom Decky plugin to switch it on" },
+  },
+  credits = {
+    { who = "Pokemon Gen 1 Recompilation Project", for_ = "the Separate Screens companion design this wraps" },
+    { who = "AverageConsumer", for_ = "Kanto Gear, the companion UI shown on the bottom screen" },
+  },
+  compat = { engine = ">=0.3.20 <2.0.0", modApi = 2 },
+}
