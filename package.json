@@ -1,0 +1,9 @@
+{
+  "name": "kanto-gear-bottom",
+  "version": "0.1.0",
+  "description": "Kanto Gear's second-screen window on the AYN Thor's bottom screen (Decky plugin plus a small Gen1Recomp mod)",
+  "type": "module",
+  "keywords": ["decky-plugin", "ayn-thor", "armada", "gen1recomp", "kanto-gear"],
+  "author": "Ven",
+  "license": "MIT"
+}
