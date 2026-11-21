@@ -19,7 +19,7 @@
 | `RELEASE_AFTER_TICKS` | `4` | `main.py:40` | yes |
 | `USER_ENV` | `XDG_RUNTIME_DIR=/run/user/<UID>`, `DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/<UID>/bus` | `main.py:42-45` | yes |
 
-Watcher interval: one tick per second (`main.py:221`). Systemctl timeout: 6.0 s (`main.py:183`).
+Watcher interval: one tick per second (`main.py:234`); a tick scans `/proc` only while the flag file exists (`main.py:241-245`). Systemctl timeout: 6.0 s.
 
 ## Constants in the Lua mod
 | Name | Value | Line |

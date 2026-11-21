@@ -21,7 +21,7 @@ Items marked **code** are visible from the source. Items marked **readme** are r
 | L13 | Touch forwarding is down and up only, with no move events. | README "Limits" | readme. Engine file `src/render/DesktopCompanion.lua` is not in this repo. **unverified** |
 | L14 | Ratatoskr bottom-screen dimming and trackpad are off while a companion window is open. | README "Limits" | readme. Not verifiable here. **unverified** |
 | L15 | A companion that is not on `gamescope-secondary` is ignored for parking, so Ratatoskr keeps running. | `main.py:223-224`, `:228-233` | code |
-| L16 | Every UI poll (every 2 s) and every watcher tick (every 1 s) re-scans `/proc` and reads `shortcuts.vdf` for status. Cost **unverified**. | `dist/index.js:39`; `main.py:215-221`, `:250-253` | code |
+| L16 | The backend runs under FEX (Decky's `PluginLoader` is x86-64), so `/proc` scans are expensive. Measured on the Thor 2026-11-20 (350 processes, x86-64 Python 3.14 under FEX, as root): the old per-tick scan, which read every `cmdline` and `environ`, cost 46.8 ms CPU, and the backend used 6.6 % of one core continuously. Now a tick with the switch off only checks the flag (0.02 ms); with it on, the companion-only scan costs 7.6 ms. Every UI poll (every 2 s, only while the Quick Access panel is open) still reads every `environ` to find the game (11.1 ms) and reads `shortcuts.vdf`. | `dist/index.js:39`; `main.py:99-124`, `:239-245` | code, measured |
 | L17 | The deploy pre-flight runs tests on the device and needs `sudo` for install, which is a manual prerequisite. | `scripts/deploy.sh:19-37` | code |
 
 ## Open questions (not answered by the repo)

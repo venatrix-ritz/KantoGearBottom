@@ -71,13 +71,13 @@ The `--` separates the launcher's options from the command, so `"$@"` (the engin
 
 | Field | Read from | Rule | Source |
 |---|---|---|---|
-| PID | Directory name of `/proc/<pid>` | Digits only | `main.py:101-102` |
-| argv | `/proc/<pid>/cmdline`, NUL-split | Empty means skip | `main.py:79-83`, `:103-106` |
-| Companion | argv[1:] | Any element starts with `--display-companion=` | `main.py:108` |
-| `bottom` | `/proc/<pid>/environ`, key `WAYLAND_DISPLAY` | Equals `gamescope-secondary` | `main.py:109`, `:86-91` |
-| Game | `/proc/<pid>/environ`, key `APPIMAGE` | Matches `gen1recomp.*\.AppImage$`, case-insensitive | `main.py:111` |
+| PID | Directory name of `/proc/<pid>` | Digits only | `main.py:109-111` |
+| argv | `/proc/<pid>/cmdline`, raw bytes | Empty or unreadable means skip | `main.py:112-118` |
+| Companion | argv[1:] | Any element starts with `--display-companion=`: the bytes contain NUL + that prefix | `main.py:38`, `:119` |
+| `bottom` | `/proc/<pid>/environ`, key `WAYLAND_DISPLAY` | Equals `gamescope-secondary` | `main.py:120` |
+| Game (status scan only) | `/proc/<pid>/environ`, key `APPIMAGE` | Matches `gen1recomp.*\.AppImage$`, case-insensitive | `main.py:122` |
 
-`read_env` splits on the first `=` per item (`main.py:91`). Items without `=` are dropped.
+`env_value` looks up one key without parsing the rest: the last `NUL key=` entry wins and the value runs to the next NUL (`main.py:83-96`). `environ` is read only for companions, and for every process only when `find_game` is set (the status scan); the watcher's tick passes `find_game=False`.
 
 Result shape (`main.py:113`):
 ```

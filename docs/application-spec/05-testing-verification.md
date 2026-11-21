@@ -13,13 +13,16 @@ This spec was written without running anything. The commands below are what the 
 The deploy pre-flight copies `main.py`, both tests, and the mod into `/tmp/kgb-preflight`, runs `python3 tests/test_backend.py`, `luajit tests/test_mod.lua`, and `luajit -bl` on the mod, then prints `preflight-ok` (`scripts/deploy.sh:20-24`). A failure stops the deploy (`set -euo pipefail` at `scripts/deploy.sh:4`).
 
 ## Backend tests (`tests/test_backend.py`)
-Fakes `/proc`, home, and `systemctl` (`tests/test_backend.py:1-2`). Thirteen test methods:
+Fakes `/proc`, home, and `systemctl` (`tests/test_backend.py:1-2`). Sixteen test methods (line numbers as of the spec pass; the three scan-cost tests were added later):
 
 | Test (line) | What it asserts |
 |---|---|
 | `test_parse_shortcuts_and_find_game_dir` (67) | Names parsed from a synthetic `shortcuts.vdf`; game folder resolved from the AppImage path |
 | `test_find_game_dir_default_without_shortcut` (76) | Fallback folder when no shortcut exists |
 | `test_scan_separates_game_and_companions` (79) | Game PID vs companion PIDs; `bottom` flag per companion |
+| `test_companion_scan_reads_environ_only_for_companions` | The watcher's scan opens `environ` for the companion only; a `sh -c` line that merely contains the argument is not a companion |
+| `test_env_value_reads_one_key` | Single-key `environ` lookup: last entry wins, `=` inside values kept, missing key or file gives `""` |
+| `test_tick_does_not_scan_while_off` | With the flag absent, `tick` never scans and calls no `systemctl` |
 | `test_mod_enabled_in_options` (89) | Text match of `thor_bottom_companion = true` only |
 | `test_install_mod_copies_once` (97) | First install reports changed files; second reports none |
 | `test_install_mod_reports_missing_folder` (106) | Missing mods folder gives an error |

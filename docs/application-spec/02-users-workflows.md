@@ -23,7 +23,7 @@ Step 1 says the plugin copies the mod "when you switch it on" (`scripts/deploy.s
 ## Workflow 2: daily use
 1. Start Gen1Recomp from Game Mode (the game process is found by `APPIMAGE` env matching `gen1recomp.*\.AppImage`, `main.py:111`).
 2. The Lua mod intercepts the engine's companion spawn (`--display-companion=<port>,<token>`). If all four shell gates pass (the flag is one of them), `armada-run-bottom` is used; otherwise the engine's own spawn runs (`main.lua:43-62`).
-3. The backend polls once per second. When a companion reports `WAYLAND_DISPLAY=gamescope-secondary`, it stops `touch-master.service` (`main.py:215-239`).
+3. While the switch is on, the backend scans for companion windows once per second; while it is off, each tick only checks the flag file (`main.py:228-256`). When a companion reports `WAYLAND_DISPLAY=gamescope-secondary`, it stops `touch-master.service`.
 4. When the companion window is gone for about four ticks (`main.py:40`, `main.py:236-239`), or the flag is removed (`main.py:238`), Ratatoskr is started again.
 
 ## Workflow 3: switching off
