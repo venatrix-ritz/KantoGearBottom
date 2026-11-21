@@ -82,7 +82,7 @@ Chosen in order, first match wins (`main.py:257-270`):
 | Steam shortcuts | `$HOME/.local/share/Steam/userdata/*/config/shortcuts.vdf` (`main.py:32`) | read | Used to find the Gen1Recomp AppImage (`main.py:65-76`) |
 | Game mods folder | `<game_dir>/mods/thor_bottom_companion/` (`main.py:139-152`) | written | Files copied from `mod/thor_bottom_companion/` |
 | Game options | `<game_dir>/options.lua` (`main.py:255`) | read-only text match | Repo does not write it |
-| Game process table | `/proc/<pid>/cmdline`, `/proc/<pid>/environ` (`main.py:79-91`) | read | Backend runs as root (`plugin.json:4`) |
+| Game process table | `/proc/<pid>/cmdline` for every process; `/proc/<pid>/environ` for companions, and for every process only in the status scan (`main.py:83-124`) | read | Backend runs as root (`plugin.json:4`) |
 | Ratatoskr service | user unit `touch-master.service`, via `systemctl` (`main.py:37`, `main.py:178-190`) | start, stop, is-active | |
 | Stock bottom fallback | user unit `armada-bottom-screen.service` (`main.py:38`, `main.py:246`) | start only if Ratatoskr start fails | |
 | Bottom env file | `${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/armada-bottom-env` (`main.lua:33`) | read-only test (`-r`) | Written by Armada (**unverified**). Only its existence and readability are checked. |
@@ -103,9 +103,9 @@ Chosen in order, first match wins (`main.py:257-270`):
 ### 5b. Companion detection (backend)
 | Signal | Source | Use |
 |---|---|---|
-| argv contains `--display-companion=` | `/proc/<pid>/cmdline` (`main.py:108`) | marks a companion |
-| env `WAYLAND_DISPLAY == "gamescope-secondary"` | `/proc/<pid>/environ` (`main.py:109`) | marks the companion as on the bottom |
-| env `APPIMAGE` matches `gen1recomp.*\.AppImage$` (case-insensitive) | `main.py:111` | marks the game process |
+| argv contains `--display-companion=` | `/proc/<pid>/cmdline` (`main.py:119`) | marks a companion |
+| env `WAYLAND_DISPLAY == "gamescope-secondary"` | `/proc/<pid>/environ` (`main.py:120`) | marks the companion as on the bottom |
+| env `APPIMAGE` matches `gen1recomp.*\.AppImage$` (case-insensitive) | `main.py:122` (status scan only) | marks the game process |
 
 ### 5c. Systemctl forms (`main.py:181`)
 Each call tries these two forms in order and returns on the first zero exit status:

@@ -13,6 +13,7 @@ How it works, in three parts:
 from __future__ import annotations
 
 import asyncio
+import functools
 import os
 import re
 import shutil
@@ -33,6 +34,9 @@ SHORTCUTS_GLOB = ".local/share/Steam/userdata/*/config/shortcuts.vdf"
 DEFAULT_GAME_DIR = HOME / "Games/Gen1Recomp/linux"
 
 COMPANION_ARG = "--display-companion="
+# Matches an argument after argv[0] that starts with COMPANION_ARG; every such argument follows a NUL in /proc cmdline.
+COMPANION_MARK = b"\0" + COMPANION_ARG.encode()
+GAME_APPIMAGE = re.compile(r"gen1recomp.*\.AppImage$", re.IGNORECASE)
 BOTTOM_X_DISPLAY = ":2"  # the DISPLAY armada-run-bottom exports; read from the env file at runtime when present
 RATATOSKR = "touch-master.service"
 STOCK_BOTTOM = "armada-bottom-screen.service"
@@ -71,45 +75,52 @@ def find_game_dir(home: Path = HOME) -> Path:
             continue
         for row in rows:
             exe = row.get("Exe", "").strip('"')
-            if re.search(r"gen1recomp.*\.AppImage$", exe, re.IGNORECASE):
+            if GAME_APPIMAGE.search(exe):
                 return Path(exe).parent
     return home / "Games/Gen1Recomp/linux"
 
 
-def read_cmdline(pid_dir: Path) -> list[str]:
+def env_value(pid_dir: str, key: str) -> str:
+    """One variable from /proc/<pid>/environ ("" when unset or unreadable); the last entry wins, as in a dict."""
     try:
-        return (pid_dir / "cmdline").read_bytes().decode(errors="replace").split("\0")
+        with open(f"{pid_dir}/environ", "rb") as f:
+            raw = b"\0" + f.read()
     except OSError:
-        return []
+        return ""
+    mark = b"\0" + key.encode() + b"="
+    start = raw.rfind(mark)
+    if start < 0:
+        return ""
+    start += len(mark)
+    end = raw.find(b"\0", start)
+    return raw[start:end if end >= 0 else len(raw)].decode(errors="replace")
 
 
-def read_env(pid_dir: Path) -> dict[str, str]:
-    try:
-        raw = (pid_dir / "environ").read_bytes().decode(errors="replace")
-    except OSError:
-        return {}
-    return dict(item.split("=", 1) for item in raw.split("\0") if "=" in item)
-
-
-def scan_processes(proc: Path = PROC) -> dict:
+def scan_processes(proc: Path = PROC, find_game: bool = True) -> dict:
     """Running Gen1Recomp processes: the game itself and any second-screen companion windows.
 
     A companion counts as "on the bottom" when it runs against the bottom gamescope (WAYLAND_DISPLAY
-    gamescope-secondary, which armada-run-bottom sets), not the top one.
+    gamescope-secondary, which armada-run-bottom sets), not the top one. Runs every second under FEX (PluginLoader
+    is x86-64): one cmdline read per process; environ only for companions, or for all processes when find_game.
     """
     game, companions = [], []
-    for pid_dir in proc.iterdir():
-        if not pid_dir.name.isdigit():
+    root = str(proc)
+    for name in os.listdir(root):
+        if not name.isdigit():
             continue
-        argv = read_cmdline(pid_dir)
-        if not argv:
+        pid_dir = f"{root}/{name}"
+        try:
+            with open(f"{pid_dir}/cmdline", "rb") as f:
+                argv = f.read()
+        except OSError:
             continue
-        entry = {"pid": int(pid_dir.name)}
-        if any(a.startswith(COMPANION_ARG) for a in argv[1:]):
-            entry["bottom"] = read_env(pid_dir).get("WAYLAND_DISPLAY") == "gamescope-secondary"
-            companions.append(entry)
-        elif re.search(r"gen1recomp.*\.AppImage$", read_env(pid_dir).get("APPIMAGE", ""), re.IGNORECASE):
-            game.append(entry)
+        if not argv:  # kernel threads and zombies: no cmdline, no environ
+            continue
+        if COMPANION_MARK in argv:
+            bottom = env_value(pid_dir, "WAYLAND_DISPLAY") == "gamescope-secondary"
+            companions.append({"pid": int(name), "bottom": bottom})
+        elif find_game and GAME_APPIMAGE.search(env_value(pid_dir, "APPIMAGE")):
+            game.append({"pid": int(name)})
     return {"game": game, "companions": companions}
 
 
@@ -204,6 +215,8 @@ class Plugin:
         self.last_scan: dict = {"game": [], "companions": []}
         self.systemctl: Callable[[str, str], tuple[int, str]] = run_systemctl
         self.scan: Callable[[], dict] = scan_processes
+        # The watcher only needs companions; finding the game means reading every process's environ.
+        self.scan_companions: Callable[[], dict] = functools.partial(scan_processes, find_game=False)
 
     # Decky calls these two.
     async def _main(self) -> None:
@@ -225,8 +238,12 @@ class Plugin:
 
     def tick(self) -> None:
         """Park Ratatoskr while a companion window is on the bottom screen; bring it back after it has been gone a while."""
-        self.last_scan = self.scan()
-        if FLAG.exists() and self.on_bottom():
+        if not FLAG.exists():
+            # Switched off: the mod sends no companion to the bottom, so there is nothing to scan for.
+            self._restore()
+            return
+        self.last_scan = self.scan_companions()
+        if self.on_bottom():
             self.quiet_ticks = 0
             if not self.parked:
                 if unit_active(RATATOSKR, self.systemctl):
@@ -235,7 +252,7 @@ class Plugin:
             return
         if self.parked:
             self.quiet_ticks += 1
-            if self.quiet_ticks >= RELEASE_AFTER_TICKS or not FLAG.exists():
+            if self.quiet_ticks >= RELEASE_AFTER_TICKS:
                 self._restore()
 
     def _restore(self) -> None:
