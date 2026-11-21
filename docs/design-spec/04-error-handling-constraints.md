@@ -11,8 +11,8 @@
 | `run_systemctl` | Missing binary, timeout, any exception | Next command form is tried; last failure returned as `(1, message)` | `main.py:183-190` |
 | `unit_active` | Non-zero rc or stdout not `active` | Returns False | `main.py:193-195` |
 | `_restore` | Start of `touch-master.service` fails | Starts `armada-bottom-screen.service` instead; the rc of that call is ignored | `main.py:244-247` |
-| `read_cmdline`, `read_env` | Process exits during scan, permission denied | Returns empty list or dict | `main.py:79-91` |
-| `scan_processes` | A `/proc` entry with empty argv | Skipped | `main.py:105-106` |
+| `env_value` | Process exits during scan, permission denied | Returns `""` | `main.py:83-96` |
+| `scan_processes` | `cmdline` unreadable or empty (process gone, kernel thread, zombie) | Skipped | `main.py:113-118` |
 | `parse_shortcuts`, `find_game_dir` | Unreadable `shortcuts.vdf` | `OSError` skips that file | `main.py:68-71` |
 | `_watch` | Any exception in `tick` | Caught and ignored; loop continues after 1 s | `main.py:215-221` |
 | `get_status` in UI | Backend call fails | `console.error`; status unchanged | `dist/index.js:28-35` |

@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -86,6 +87,31 @@ class BackendTest(unittest.TestCase):
         self.assertEqual([g["pid"] for g in scan["game"]], [10])
         self.assertEqual({c["pid"]: c["bottom"] for c in scan["companions"]}, {11: True, 12: False})
 
+    def test_companion_scan_reads_environ_only_for_companions(self):
+        fake_proc(self.proc, 10, ["/tmp/.mount_x/usr/bin/gen1recomp"], {"APPIMAGE": APP})
+        fake_proc(self.proc, 11, [APP, "--display-companion=49999,abc"], {"WAYLAND_DISPLAY": "gamescope-secondary"})
+        fake_proc(self.proc, 13, ["/usr/bin/python3", "other.py"], {"APPIMAGE": "/x/other.AppImage"})
+        fake_proc(self.proc, 14, ["/bin/sh", "-c", f"{APP} --display-companion=1,x"], {})  # not an argument of its own
+        real_open, opened = open, []
+
+        def spy(path, *args, **kwargs):
+            opened.append(str(path))
+            return real_open(path, *args, **kwargs)
+
+        with mock.patch("builtins.open", spy):
+            scan = self.m.scan_processes(self.proc, find_game=False)
+        self.assertEqual(scan, {"game": [], "companions": [{"pid": 11, "bottom": True}]})
+        self.assertEqual([Path(p).parent.name for p in opened if p.endswith("environ")], ["11"])
+
+    def test_env_value_reads_one_key(self):
+        d = self.proc / "20"
+        d.mkdir()
+        (d / "environ").write_bytes(b"A=1\0WAYLAND_DISPLAY=gamescope-0\0XWAYLAND_DISPLAY=no\0WAYLAND_DISPLAY=x=y\0")
+        self.assertEqual(self.m.env_value(str(d), "WAYLAND_DISPLAY"), "x=y")  # last one wins, "=" in values kept
+        self.assertEqual(self.m.env_value(str(d), "A"), "1")
+        self.assertEqual(self.m.env_value(str(d), "APPIMAGE"), "")
+        self.assertEqual(self.m.env_value(str(self.proc / "missing"), "A"), "")
+
     def test_mod_enabled_in_options(self):
         opts = self.home / "options.lua"
         self.assertFalse(self.m.mod_enabled_in_options(opts))
@@ -117,7 +143,17 @@ class BackendTest(unittest.TestCase):
 
     def set_scan(self, bottom_companion: bool):
         scan = {"game": [{"pid": 1}], "companions": [{"pid": 2, "bottom": True}] if bottom_companion else []}
-        self.plugin.scan = lambda: scan
+        self.plugin.scan = self.plugin.scan_companions = lambda: scan
+
+    def test_tick_does_not_scan_while_off(self):
+        def no_scan():
+            raise AssertionError("scanned /proc while switched off")
+
+        self.plugin.scan = self.plugin.scan_companions = no_scan
+        for _ in range(3):
+            self.plugin.tick()
+        self.assertFalse(self.plugin.parked)
+        self.assertEqual(self.calls, [])
 
     def test_tick_parks_and_restores_ratatoskr(self):
         self.m.set_flag(True)

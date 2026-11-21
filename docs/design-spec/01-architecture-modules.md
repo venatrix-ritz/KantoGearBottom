@@ -23,7 +23,8 @@ The plugin and the mod never call each other directly. The contract between them
 
 Helpers are module-level functions, which makes them testable with a fake `/proc` and a fake home (`tests/test_backend.py:12-17`). Dependencies that touch the system are injected as attributes on `Plugin`:
 - `self.systemctl` (default `run_systemctl`, `main.py:205`)
-- `self.scan` (default `scan_processes`, `main.py:206`)
+- `self.scan` (default `scan_processes`, used by `_status`, `main.py:217`)
+- `self.scan_companions` (default `scan_processes(find_game=False)`, used by `tick`, `main.py:219`)
 
 The `Plugin` methods that the frontend calls do not take these as parameters. Only `unit_active` takes an injectable `systemctl` argument (`main.py:193`).
 
@@ -79,7 +80,7 @@ Threading facts from code:
 | Switch | File `FLAG` (`main.py:29`) | Persists across restarts |
 | Parked | `Plugin.parked` (`main.py:202`) | In memory. A restart of the Decky backend loses it, and Ratatoskr is not restarted by the new process (**unverified** behaviour across restarts; the code has no startup check). |
 | Quiet tick counter | `Plugin.quiet_ticks` (`main.py:203`) | In memory |
-| Last process scan | `Plugin.last_scan` (`main.py:204`, updated in `tick` and `_status`) | In memory |
+| Last process scan | `Plugin.last_scan` (updated in `_status`, and in `tick` while the switch is on) | In memory |
 | Game-installed mod | Files under `<game_dir>/mods/thor_bottom_companion/` | On disk |
 | Guard against double wrap | `HostShell._thorBottomCompanionOriginal` (`main.lua:22`) | In the Gen1Recomp process |
 

@@ -24,7 +24,7 @@ The repo has no roadmap, TODO list, or issue file. Nothing here is a commitment.
 | R8 | Decide what turning off should do with the copied mod | Mod stays in the game folder (L6) | `main.py:294-296` |
 | R9 | Check the `bottom` answer against the real bottom session before printing it | Gate checks files, not the running session (L3) | `main.lua:34-36` |
 | R10 | Parse `shortcuts.vdf` with a real VDF reader if more fields are needed | Byte regex (L8) | `main.py:50-62` |
-| R11 | Reduce `/proc` and file reads per poll if they show up in profiling | Cost not measured (L16) | `dist/index.js:39`; `main.py:250-253` |
+| R11 | Done for the watcher (D23). Open: the status poll still reads every `environ` and `shortcuts.vdf` every 2 s while the panel is open | 11.1 ms per poll under FEX (L16) | `dist/index.js:39`; `_status` in `main.py` |
 
 ## Out of this repo
 These are noted in the README "Limits" section. Their fix belongs to other repos (**unverified**).

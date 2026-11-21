@@ -77,7 +77,7 @@ flowchart LR
   S --> FLAG["flag exists"]
   S --> R["dict to UI"]
 ```
-Source: `dist/index.js:37-41`, `main.py:250-280`. Cost **unverified**. The watcher also calls `scan_processes` once a second (`main.py:228`).
+Source: `dist/index.js:37-41`, `_status` in `main.py`. The status scan reads every `environ` to find the game: 11.1 ms CPU under FEX on the Thor (2026-11-20, 350 processes), only while the panel is open. The watcher scans for companions only (7.6 ms), and only while the switch is on (`main.py:241-245`); see application spec L16.
 
 ## 5. Install path (button)
 
